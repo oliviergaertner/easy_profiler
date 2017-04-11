@@ -1,17 +1,16 @@
 /************************************************************************
-* file name         : event_trace_win.h
+* file name         : easy_frame_rate_viewer.cpp
 * ----------------- :
-* creation time     : 2016/09/04
+* creation time     : 2017/04/02
 * author            : Victor Zarubkin
 * email             : v.s.zarubkin@gmail.com
 * ----------------- :
-* description       : The file contains declaration of EasyEventTracer class used for tracing
-*                   : Windows system events to get context switches.
+* description       : This file contains declaration of EasyFrameRateViewer widget.
 * ----------------- :
-* change log        : * 2016/09/04 Victor Zarubkin: initial commit.
+* change log        : * 2017/04/02 Victor Zarubkin: Initial commit.
 *                   :
 *                   : *
-* ----------------- :
+* ----------------- : 
 * license           : Lightweight profiler library for c++
 *                   : Copyright(C) 2016-2017  Sergey Yagovtsev, Victor Zarubkin
 *                   :
@@ -53,77 +52,74 @@
 *                   : limitations under the License.
 ************************************************************************/
 
-#ifndef EASY_PROFILER_EVENT_TRACE_WINDOWS_H
-#define EASY_PROFILER_EVENT_TRACE_WINDOWS_H
-#ifdef _WIN32
+#ifndef EASY__FRAME_RATE_VIEWER__H
+#define EASY__FRAME_RATE_VIEWER__H
 
-#define INITGUID  // This is to enable using SystemTraceControlGuid in evntrace.h.
-#include <Windows.h>
-#include <Strsafe.h>
-#include <wmistr.h>
-#include <evntrace.h>
-#include <evntcons.h>
-#include <thread>
-#include <atomic>
-#include "event_trace_status.h"
-#include "spin_lock.h"
+#include <QGraphicsView>
+#include <QGraphicsItem>
+#include <QTimer>
+#include <vector>
+#include <deque>
+#include <easy/profiler.h>
 
 //////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
 
-namespace profiler {
+class EasyFPSGraphicsItem : public QGraphicsItem
+{
+    typedef QGraphicsItem                                  Parent;
+    typedef EasyFPSGraphicsItem                              This;
+    typedef std::deque<std::pair<uint32_t, uint32_t> > FrameTimes;
 
-    class EasyEventTracer EASY_FINAL
-    {
-#ifndef EASY_MAGIC_STATIC_CPP11
-        friend class EasyEventTracerInstance;
-#endif
+    std::vector<QPointF> m_points1, m_points2;
+    FrameTimes                       m_frames;
+    QRectF                     m_boundingRect;
 
-#pragma pack(push, 1)
-        struct Properties {
-            EVENT_TRACE_PROPERTIES base;
-            char sessionName[sizeof(KERNEL_LOGGER_NAME)];
-        };
-#pragma pack(pop)
+public:
 
-        ::std::thread       m_processThread;
-        Properties             m_properties;
-        EVENT_TRACE_LOGFILE         m_trace;
-        ::profiler::spin_lock        m_spin;
-        ::std::atomic_bool    m_lowPriority;
-        TRACEHANDLE         m_sessionHandle = INVALID_PROCESSTRACE_HANDLE;
-        TRACEHANDLE          m_openedHandle = INVALID_PROCESSTRACE_HANDLE;
-        bool                     m_bEnabled = false;
+    explicit EasyFPSGraphicsItem();
+    virtual ~EasyFPSGraphicsItem();
 
-    public:
+    QRectF boundingRect() const override;
+    void paint(QPainter* _painter, const QStyleOptionGraphicsItem* _option, QWidget* _widget = nullptr) override;
 
-        static EasyEventTracer& instance();
-        ~EasyEventTracer();
+    void setBoundingRect(const QRectF& _boundingRect);
+    void setBoundingRect(qreal x, qreal y, qreal w, qreal h);
 
-        bool isLowPriority() const;
+    void clear();
+    void addPoint(uint32_t _maxFrameTime, uint32_t _avgFrameTime);
 
-        ::profiler::EventTracingEnableStatus enable(bool _force = false);
-        void disable();
-        void setLowPriority(bool _value);
-        static void setProcessPrivileges();
-
-    private:
-
-        EasyEventTracer();
-
-        inline EVENT_TRACE_PROPERTIES* props()
-        {
-            return reinterpret_cast<EVENT_TRACE_PROPERTIES*>(&m_properties);
-        }
-
-        ::profiler::EventTracingEnableStatus startTrace(bool _force, int _step = 0);
-
-    }; // END of class EasyEventTracer.
-
-} // END of namespace profiler.
+}; // END of class EasyFPSGraphicsItem.
 
 //////////////////////////////////////////////////////////////////////////
+
+class EasyFrameRateViewer : public QGraphicsView
+{
+    Q_OBJECT
+
+private:
+
+    typedef QGraphicsView       Parent;
+    typedef EasyFrameRateViewer   This;
+
+    EasyFPSGraphicsItem* m_fpsItem;
+
+public:
+
+    explicit EasyFrameRateViewer(QWidget* _parent = nullptr);
+    virtual ~EasyFrameRateViewer();
+
+    void resizeEvent(QResizeEvent* _event) override;
+    void hideEvent(QHideEvent* _event) override;
+    void showEvent(QShowEvent* _event) override;
+    void contextMenuEvent(QContextMenuEvent* _event) override;
+
+public slots:
+
+    void clear();
+    void addPoint(uint32_t _maxFrameTime, uint32_t _avgFrameTime);
+
+}; // END of class EasyFrameRateViewer.
+
 //////////////////////////////////////////////////////////////////////////
 
-#endif // _WIN32
-#endif // EASY_PROFILER_EVENT_TRACE_WINDOWS_H
+#endif // EASY__FRAME_RATE_VIEWER__H

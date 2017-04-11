@@ -24,11 +24,35 @@
 *                   : * 
 * ----------------- :
 * license           : Lightweight profiler library for c++
-*                   : Copyright(C) 2016  Sergey Yagovtsev, Victor Zarubkin
+*                   : Copyright(C) 2016-2017  Sergey Yagovtsev, Victor Zarubkin
 *                   :
+*                   : Licensed under either of
+*                   :     * MIT license (LICENSE.MIT or http://opensource.org/licenses/MIT)
+*                   :     * Apache License, Version 2.0, (LICENSE.APACHE or http://www.apache.org/licenses/LICENSE-2.0)
+*                   : at your option.
 *                   :
-*                   : Licensed under the Apache License, Version 2.0 (the "License");
-*                   : you may not use this file except in compliance with the License.
+*                   : The MIT License
+*                   :
+*                   : Permission is hereby granted, free of charge, to any person obtaining a copy
+*                   : of this software and associated documentation files (the "Software"), to deal
+*                   : in the Software without restriction, including without limitation the rights
+*                   : to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+*                   : of the Software, and to permit persons to whom the Software is furnished
+*                   : to do so, subject to the following conditions:
+*                   :
+*                   : The above copyright notice and this permission notice shall be included in all
+*                   : copies or substantial portions of the Software.
+*                   :
+*                   : THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+*                   : INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+*                   : PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+*                   : LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+*                   : TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+*                   : USE OR OTHER DEALINGS IN THE SOFTWARE.
+*                   :
+*                   : The Apache License, Version 2.0 (the "License")
+*                   :
+*                   : You may not use this file except in compliance with the License.
 *                   : You may obtain a copy of the License at
 *                   :
 *                   : http://www.apache.org/licenses/LICENSE-2.0
@@ -38,20 +62,6 @@
 *                   : WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 *                   : See the License for the specific language governing permissions and
 *                   : limitations under the License.
-*                   :
-*                   :
-*                   : GNU General Public License Usage
-*                   : Alternatively, this file may be used under the terms of the GNU
-*                   : General Public License as published by the Free Software Foundation,
-*                   : either version 3 of the License, or (at your option) any later version.
-*                   :
-*                   : This program is distributed in the hope that it will be useful,
-*                   : but WITHOUT ANY WARRANTY; without even the implied warranty of
-*                   : MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.See the
-*                   : GNU General Public License for more details.
-*                   :
-*                   : You should have received a copy of the GNU General Public License
-*                   : along with this program.If not, see <http://www.gnu.org/licenses/>.
 ************************************************************************/
 
 #include <QGraphicsScene>
@@ -194,11 +204,11 @@ void EasyBackgroundItem::paint(QPainter* _painter, const QStyleOptionGraphicsIte
     const auto nsteps = (1 + odd) * 2 + static_cast<int>(visibleSceneRect.width() / step);
     first -= odd;
 
-    QPen pen(Qt::gray);
+    QPen pen(Qt::darkGray);
     pen.setWidth(2);
     _painter->setPen(pen);
     _painter->drawLine(QPointF(0, h), QPointF(visibleSceneRect.width(), h));
-    _painter->setPen(Qt::gray);
+    _painter->setPen(Qt::darkGray);
 
     QLineF marks[20];
     qreal first_x = first * sceneStep;
@@ -232,7 +242,7 @@ void EasyBackgroundItem::paint(QPainter* _painter, const QStyleOptionGraphicsIte
             next = n;
             _painter->setPen(Qt::black);
             _painter->drawText(QPointF(current + 1, h + 17), QString::number(static_cast<quint64>(0.5 + (current + left) * factor / currentScale)));
-            _painter->setPen(Qt::gray);
+            _painter->setPen(Qt::darkGray);
         }
 
         // TEST
@@ -263,17 +273,18 @@ void EasyTimelineIndicatorItem::paint(QPainter* _painter, const QStyleOptionGrap
     _painter->setBrush(Qt::NoBrush);
 
     QPen pen(Qt::black);
-    pen.setWidth(2);
-    pen.setJoinStyle(Qt::MiterJoin);
+    pen.setWidth(3);
     _painter->setPen(pen);
 
-    QRectF rect(visibleSceneRect.width() - 10 - step, visibleSceneRect.height() - 20, step, 10);
-    const auto rect_right = rect.right();
-    const QPointF points[] = {{rect.left(), rect.bottom()}, {rect.left(), rect.top()}, {rect_right, rect.top()}, {rect_right, rect.top() + 5}};
-    _painter->drawPolyline(points, sizeof(points) / sizeof(QPointF));
+    _painter->drawLine(QLineF(visibleSceneRect.width() - 9 - step, visibleSceneRect.height() - 10, visibleSceneRect.width() - 11, visibleSceneRect.height() - 10));
 
-    rect.translate(0, 3);
-    _painter->drawText(rect, Qt::AlignRight | Qt::TextDontClip, text);
+    _painter->setPen(Qt::black);
+    _painter->drawLine(QLineF(visibleSceneRect.width() - 10 - step, visibleSceneRect.height() - 6, visibleSceneRect.width() - 10 - step, visibleSceneRect.height() - 14));
+    _painter->drawLine(QLineF(visibleSceneRect.width() - 10, visibleSceneRect.height() - 6, visibleSceneRect.width() - 10, visibleSceneRect.height() - 14));
+
+    _painter->setPen(Qt::black);
+    _painter->setFont(BG_FONT);
+    _painter->drawText(QRectF(visibleSceneRect.width() - 10 - step, visibleSceneRect.height() - 63, step, 50), Qt::AlignRight | Qt::AlignBottom | Qt::TextDontClip, text);
 
     _painter->restore();
 }
@@ -539,7 +550,7 @@ void EasyGraphicsView::setTree(const ::profiler::thread_blocks_tree_t& _blocksTr
         emit EASY_GLOBALS.events.selectedThreadChanged(longestItem->threadId());
 
         scrollTo(longestItem);
-        m_pScrollbar->setHystogramFrom(longestItem->threadId(), longestItem->items(0));
+        m_pScrollbar->setHistogramSource(longestItem->threadId(), longestItem->items(0));
         if (!longestItem->items(0).empty())
             m_pScrollbar->setValue(longestItem->items(0).front().left() - m_pScrollbar->sliderWidth() * 0.25);
     }
@@ -1012,14 +1023,14 @@ void EasyGraphicsView::mouseReleaseEvent(QMouseEvent* _event)
         m_bUpdatingRect = false;
 
         if (selectedBlock != nullptr && selectedBlockThread == EASY_GLOBALS.selected_thread)
-            m_pScrollbar->setHystogramFrom(EASY_GLOBALS.selected_thread, EASY_GLOBALS.selected_block_id);
+            m_pScrollbar->setHistogramSource(EASY_GLOBALS.selected_thread, EASY_GLOBALS.selected_block_id);
         else
         {
             for (auto item : m_items)
             {
                 if (item->threadId() == EASY_GLOBALS.selected_thread)
                 {
-                    m_pScrollbar->setHystogramFrom(EASY_GLOBALS.selected_thread, item->items(0));
+                    m_pScrollbar->setHistogramSource(EASY_GLOBALS.selected_thread, item->items(0));
                     break;
                 }
             }
@@ -1283,18 +1294,18 @@ void EasyGraphicsView::initMode()
                 {
                     if (item->threadId() == EASY_GLOBALS.selected_thread)
                     {
-                        m_pScrollbar->setHystogramFrom(EASY_GLOBALS.selected_thread, item->items(0));
+                        m_pScrollbar->setHistogramSource(EASY_GLOBALS.selected_thread, item->items(0));
                         break;
                     }
                 }
             }
             else
             {
-                m_pScrollbar->setHystogramFrom(0, nullptr);
+                m_pScrollbar->setHistogramSource(0, nullptr);
             }
         }
         else
-            m_pScrollbar->setHystogramFrom(EASY_GLOBALS.selected_thread, EASY_GLOBALS.selected_block_id);
+            m_pScrollbar->setHistogramSource(EASY_GLOBALS.selected_thread, EASY_GLOBALS.selected_block_id);
         onRefreshRequired();
     });
 
@@ -1710,7 +1721,7 @@ void EasyGraphicsView::onSelectedThreadChange(::profiler::thread_id_t _id)
 
     if (_id == 0)
     {
-        m_pScrollbar->setHystogramFrom(0, nullptr);
+        m_pScrollbar->setHistogramSource(0, nullptr);
         return;
     }
 
@@ -1718,7 +1729,7 @@ void EasyGraphicsView::onSelectedThreadChange(::profiler::thread_id_t _id)
     {
         if (item->threadId() == _id)
         {
-            m_pScrollbar->setHystogramFrom(_id, item->items(0));
+            m_pScrollbar->setHistogramSource(_id, item->items(0));
 
             bool changedSelection = false;
             if (EASY_GLOBALS.only_current_thread_hierarchy)
@@ -1747,7 +1758,7 @@ void EasyGraphicsView::onSelectedThreadChange(::profiler::thread_id_t _id)
         }
     }
 
-    m_pScrollbar->setHystogramFrom(0, nullptr);
+    m_pScrollbar->setHistogramSource(0, nullptr);
     repaintScene();
 }
 
@@ -1780,7 +1791,7 @@ void EasyGraphicsView::onSelectedBlockChange(unsigned int _block_index)
                 m_pScrollbar->unlock();
             }
 
-            m_pScrollbar->setHystogramFrom(EASY_GLOBALS.selected_thread, guiblock.tree.node->id());
+            m_pScrollbar->setHistogramSource(EASY_GLOBALS.selected_thread, guiblock.tree.node->id());
 
             m_bUpdatingRect = false;
         }
@@ -1790,14 +1801,14 @@ void EasyGraphicsView::onSelectedBlockChange(unsigned int _block_index)
             {
                 if (item->threadId() == EASY_GLOBALS.selected_thread)
                 {
-                    m_pScrollbar->setHystogramFrom(EASY_GLOBALS.selected_thread, item->items(0));
+                    m_pScrollbar->setHistogramSource(EASY_GLOBALS.selected_thread, item->items(0));
                     break;
                 }
             }
         }
         else
         {
-            m_pScrollbar->setHystogramFrom(0, nullptr);
+            m_pScrollbar->setHistogramSource(0, nullptr);
         }
 
         updateVisibleSceneRect();
